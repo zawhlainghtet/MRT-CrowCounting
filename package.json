@@ -1,0 +1,53 @@
+{
+  "name": "headcounter",
+  "version": "1.0.0",
+  "description": "Head counting application for macOS with Launch Daemon support",
+  "main": "dist/main.js",
+  "scripts": {
+    "test": "vitest run",
+    "build": "npm run test && tsc && cp src/server/dashboard.html dist/server/ && cp src/server/display.html dist/server/",
+    "watch": "tsc --watch",
+    "dev": "tsc && node dist/main.js",
+    "dev:ui": "cd src/ui && npm run dev",
+    "tauri": "cd src/ui && tauri",
+    "pkg": "pkg dist/main.js -t node18-macos-arm64,node18-macos-x64 -o bin/headcounter --compress Brotli",
+    "install:deps": "npm install && npm install -g pkg",
+    "postinstall": "npm run build",
+    "docker:build": "docker build -t headcounter-server:latest .",
+    "docker:tag": "docker tag headcounter-server:latest DOCKER_HUB_USERNAME/headcounter-server:latest",
+    "docker:push": "docker push DOCKER_HUB_USERNAME/headcounter-server:latest",
+    "docker:run": "docker run -p 3456:3456 -v headcounter-data:/app/data headcounter-server:latest"
+  },
+  "keywords": [
+    "headcount",
+    "camera",
+    "macos",
+    "launch-daemon",
+    "tauri"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@serialport/bindings-cpp": "^13.0.1",
+    "axios": "^1.6.7",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "node-webcam": "^0.8.2",
+    "serialport": "^13.0.0",
+    "sql.js": "^1.13.0",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.16",
+    "@types/sql.js": "^1.4.9",
+    "@types/supertest": "^7.2.0",
+    "@types/ws": "^8.5.10",
+    "pkg": "^5.8.1",
+    "supertest": "^7.2.2",
+    "typescript": "^5.3.3",
+    "vitest": "^4.1.0"
+  }
+}

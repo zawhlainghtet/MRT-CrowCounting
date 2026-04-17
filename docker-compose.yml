@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  headcounter-server:
+    image: naingaungluu/head-counter-server:latest
+    container_name: headcounter-server
+    ports:
+      - "3456:3456"
+    volumes:
+      - headcounter-data:/app/data
+      - ./resources/default-config.json:/usr/local/headcounter/config/config.json
+    environment:
+      - NODE_ENV=production
+      - PORT=3456
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3456/api/status"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      - headcounter-network
+
+volumes:
+  headcounter-data:
+    driver: local
+
+networks:
+  headcounter-network:
+    driver: bridge

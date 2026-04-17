@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "lib": ["ES2022"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": false,
+    "sourceMap": false,
+    "moduleResolution": "node"
+  },
+  "include": [
+    "src/server-entry.ts",
+    "src/server/**/*.ts",
+    "src/storage/**/*.ts",
+    "src/config/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/ui",
+    "src/main.ts",
+    "src/camera/**/*.ts",
+    "src/ml/**/*.ts",
+    "src/daemon/**/*.ts",
+    "src/serial/**/*.ts"
+  ]
+}
