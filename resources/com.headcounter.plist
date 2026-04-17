@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.headcounter.daemon</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/headcounter/bin/headcounter</string>
+        <string>daemon</string>
+    </array>
+    <key>KeepAlive</key>
+    <true/>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/var/log/headcounter.log</string>
+    <key>StandardErrorPath</key>
+    <string>/var/log/headcounter.error.log</string>
+    <key>WorkingDirectory</key>
+    <string>/usr/local/headcounter</string>
+    <key>ProcessType</key>
+    <string>Background</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>NODE_PATH</key>
+        <string>/usr/local/headcounter/bin/node_modules</string>
+    </dict>
+</dict>
+</plist>
