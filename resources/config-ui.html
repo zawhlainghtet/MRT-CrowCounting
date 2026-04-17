@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HeadCounter Configuration</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1e1e1e; color: #e0e0e0; min-height: 100vh; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        h1 { font-size: 24px; margin-bottom: 24px; color: #fff; border-bottom: 1px solid #333; padding-bottom: 12px; }
+        .section { background: #2d2d2d; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .section-title { font-size: 14px; font-weight: 600; color: #888; text-transform: uppercase; margin-bottom: 16px; }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; font-size: 13px; margin-bottom: 6px; color: #aaa; }
+        input, select { width: 100%; padding: 10px 12px; background: #1e1e1e; border: 1px solid #444; border-radius: 4px; color: #fff; font-size: 14px; }
+        input:focus, select:focus { outline: none; border-color: #007acc; }
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .status { display: flex; align-items: center; gap: 12px; padding: 16px; background: #1e1e1e; border-radius: 6px; }
+        .status-indicator { width: 12px; height: 12px; border-radius: 50%; background: #666; }
+        .status-indicator.running { background: #4caf50; }
+        .buttons { display: flex; gap: 12px; margin-top: 20px; }
+        button { flex: 1; padding: 12px 20px; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+        button:hover { opacity: 0.9; }
+        .btn-primary { background: #007acc; color: #fff; }
+        .btn-secondary { background: #444; color: #fff; }
+        .btn-danger { background: #d32f2f; color: #fff; }
+        .btn-success { background: #2e7d32; color: #fff; }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+        .stat-item { background: #1e1e1e; padding: 16px; border-radius: 6px; text-align: center; }
+        .stat-value { font-size: 24px; font-weight: 600; color: #fff; }
+        .stat-label { font-size: 12px; color: #888; margin-top: 4px; }
+        .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #333; }
+        .info-label { color: #888; }
+        .info-value { color: #fff; font-weight: 500; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>HeadCounter Configuration</h1>
+        
+        <div class="section">
+            <div class="section-title">Status</div>
+            <div class="status">
+                <div class="status-indicator" id="statusIndicator"></div>
+                <span class="status-text" id="statusText">Loading...</span>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalCaptures">0</div>
+                    <div class="stat-label">Total Captures</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="storageUsed">0 MB</div>
+                    <div class="stat-label">Storage Used</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="mode">-</div>
+                    <div class="stat-label">Mode</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">Locations</div>
+            <div class="info-row">
+                <span class="info-label">Images</span>
+                <span class="info-value" id="imagesPath">/usr/local/headcounter/captured_images</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Logs</span>
+                <span class="info-value" id="logsPath">/usr/local/headcounter/logs</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Database</span>
+                <span class="info-value" id="dbPath">/usr/local/headcounter/data/storage.db</span>
+            </div>
+        </div>
+        
+        <div class="buttons">
+            <button class="btn-success" onclick="openFolder('/usr/local/headcounter/captured_images')">📁 View Images</button>
+            <button class="btn-secondary" onclick="openFolder('/usr/local/headcounter/logs')">📋 View Logs</button>
+        </div>
+        
+        <div class="section" style="margin-top: 20px;">
+            <div class="section-title">Camera Settings</div>
+            <div class="form-group">
+                <label>Camera Type</label>
+                <select id="cameraType" onchange="toggleCameraFields()">
+                    <option value="usb">USB Webcam (Development)</option>
+                    <option value="rtsp">RTSP Stream (Production)</option>
+                </select>
+            </div>
+            <div id="usbFields">
+                <div class="row">
+                    <div class="form-group">
+                        <label>Device Index</label>
+                        <input type="text" id="usbDevice" value="0" placeholder="e.g., 0">
+                    </div>
+                    <div class="form-group">
+                        <label>Resolution</label>
+                        <input type="text" id="usbResolution" value="1280x720" placeholder="e.g., 1280x720">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="form-group">
+                        <label>Framerate</label>
+                        <input type="number" id="usbFramerate" value="60" min="1" max="120" placeholder="e.g., 60">
+                    </div>
+                </div>
+            </div>
+            <div id="rtspFields" style="display: none;">
+                <div class="form-group">
+                    <label>RTSP URL</label>
+                    <input type="text" id="rtspUrl" value="rtsp://camera-ip:554/stream" placeholder="rtsp://...">
+                </div>
+            </div>
+        </div>
+        
+
+        
+        <div class="section">
+            <div class="section-title">Storage Settings</div>
+            <div class="row">
+                <div class="form-group">
+                    <label>Max Storage (MB)</label>
+                    <input type="number" id="maxStorage" value="1000" min="100">
+                </div>
+                <div class="form-group">
+                    <label>Auto Cleanup</label>
+                    <select id="autoCleanup">
+                        <option value="true">Enabled</option>
+                        <option value="false">Disabled</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">Server Settings (for nodes)</div>
+            <div class="form-group">
+                <label>Server URL</label>
+                <input type="text" id="serverUrl" placeholder="http://server-ip:3456">
+            </div>
+            <div class="form-group">
+                <label>Server Token</label>
+                <input type="text" id="serverToken" placeholder="Token from server registration">
+            </div>
+            <div class="form-group">
+                <label>Heartbeat Interval (seconds)</label>
+                <input type="number" id="serverHeartbeat" value="30" min="10" max="300">
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Serial Trigger (ESP32S3 Button)</div>
+            <div class="form-group">
+                <label>Enable Serial Trigger</label>
+                <select id="serialEnabled">
+                    <option value="false">Disabled</option>
+                    <option value="true">Enabled</option>
+                </select>
+            </div>
+            <div class="row">
+                <div class="form-group">
+                    <label>Port</label>
+                    <div style="display: flex; gap: 8px;">
+                        <select id="serialPort" style="flex: 1;">
+                            <option value="">-- Select Port --</option>
+                        </select>
+                        <button class="btn-secondary" style="padding: 8px 12px; min-width: auto;" onclick="refreshSerialPorts()">↻</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Baud Rate</label>
+                    <select id="serialBaudRate">
+                        <option value="9600">9600</option>
+                        <option value="19200">19200</option>
+                        <option value="57600">57600</option>
+                        <option value="115200" selected>115200</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Cooldown (ms)</label>
+                <input type="number" id="serialCooldown" value="3000" min="500" max="30000" step="100">
+            </div>
+            <div class="info-row">
+                <span class="info-label">Status</span>
+                <span class="info-value" id="serialStatus">Not connected</span>
+            </div>
+        </div>
+        
+        <div class="buttons">
+            <button class="btn-primary" onclick="saveConfig()">Save Configuration</button>
+            <button class="btn-secondary" onclick="restartService()">Restart Service</button>
+        </div>
+        
+        <div class="buttons">
+            <button class="btn-secondary" onclick="stopService()">Stop Service</button>
+            <button class="btn-secondary" onclick="captureNow()">Capture Now</button>
+            <button class="btn-danger" onclick="uninstallService()">Uninstall</button>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE = '';
+        
+        function openFolder(path) {
+            fetch(`${API_BASE}/api/open`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path })
+            }).then(() => {
+                console.log('Opening folder:', path);
+            }).catch(err => {
+                alert('Error opening folder: ' + err.message);
+            });
+        }
+        
+        async function loadConfig() {
+            try {
+                const response = await fetch(`${API_BASE}/api/config`);
+                const config = await response.json();
+                
+                if (config.camera) {
+                    document.getElementById('cameraType').value = config.camera.type || 'usb';
+                    toggleCameraFields();
+                    
+                    if (config.camera.usb) {
+                        document.getElementById('usbDevice').value = config.camera.usb.device || '0';
+                        document.getElementById('usbResolution').value = config.camera.usb.resolution || '1280x720';
+                        document.getElementById('usbFramerate').value = config.camera.usb.framerate || 60;
+                    }
+                    if (config.camera.rtsp) {
+                        document.getElementById('rtspUrl').value = config.camera.rtsp.url || '';
+                    }
+                }
+                
+                if (config.storage) {
+                    document.getElementById('maxStorage').value = config.storage.maxTotalSizeMB || 1000;
+                    document.getElementById('autoCleanup').value = String(config.storage.cleanupEnabled ?? true);
+                }
+                
+                if (config.server) {
+                    document.getElementById('serverUrl').value = config.server.url || '';
+                    document.getElementById('serverToken').value = config.server.token || '';
+                    document.getElementById('serverHeartbeat').value = config.server.heartbeatIntervalSeconds || 30;
+                }
+
+                if (config.serial) {
+                    document.getElementById('serialEnabled').value = String(config.serial.enabled ?? false);
+                    document.getElementById('serialBaudRate').value = config.serial.baudRate || 115200;
+                    document.getElementById('serialCooldown').value = config.serial.cooldownMs || 3000;
+                }
+                
+                // Refresh port list and set selected port
+                await refreshSerialPorts();
+                if (config.serial?.port) {
+                    document.getElementById('serialPort').value = config.serial.port;
+                }
+            } catch (error) {
+                console.error('Failed to load config:', error);
+            }
+        }
+        
+        async function loadStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/api/status`);
+                const status = await response.json();
+                
+                document.getElementById('statusIndicator').className = 
+                    'status-indicator ' + (status.running ? 'running' : '');
+                document.getElementById('statusText').textContent = 
+                    status.running ? 'Running' : 'Stopped';
+                document.getElementById('totalCaptures').textContent = 
+                    status.totalCaptures || 0;
+                document.getElementById('storageUsed').textContent = 
+                    (status.storageUsedMB || 0) + ' MB';
+                document.getElementById('mode').textContent = 
+                    status.mode || '-';
+                
+                document.getElementById('cameraType').value = status.cameraType || 'usb';
+            } catch (error) {
+                console.error('Failed to load status:', error);
+            }
+        }
+        
+        function toggleCameraFields() {
+            const type = document.getElementById('cameraType').value;
+            document.getElementById('usbFields').style.display = 
+                type === 'usb' ? 'block' : 'none';
+            document.getElementById('rtspFields').style.display = 
+                type === 'rtsp' ? 'block' : 'none';
+        }
+        
+        async function saveConfig() {
+            const config = {
+                camera: {
+                    type: document.getElementById('cameraType').value,
+                    usb: {
+                        device: document.getElementById('usbDevice').value,
+                        resolution: document.getElementById('usbResolution').value,
+                        framerate: parseInt(document.getElementById('usbFramerate').value) || 60
+                    },
+                    rtsp: {
+                        url: document.getElementById('rtspUrl').value
+                    }
+                },
+                storage: {
+                    maxTotalSizeMB: parseInt(document.getElementById('maxStorage').value),
+                    cleanupEnabled: document.getElementById('autoCleanup').value === 'true'
+                },
+                server: {
+                    url: document.getElementById('serverUrl').value,
+                    token: document.getElementById('serverToken').value,
+                    heartbeatIntervalSeconds: parseInt(document.getElementById('serverHeartbeat').value) || 30
+                },
+                serial: {
+                    enabled: document.getElementById('serialEnabled').value === 'true',
+                    port: document.getElementById('serialPort').value,
+                    baudRate: parseInt(document.getElementById('serialBaudRate').value) || 115200,
+                    cooldownMs: parseInt(document.getElementById('serialCooldown').value) || 3000
+                }
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/save-config`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                
+                if (response.ok) {
+                    alert('Configuration saved successfully!');
+                } else {
+                    alert('Failed to save configuration');
+                }
+            } catch (error) {
+                alert('Error saving configuration: ' + error.message);
+            }
+        }
+        
+        async function restartService() {
+            try {
+                const response = await fetch(`${API_BASE}/api/restart`, { method: 'POST' });
+                if (response.ok) {
+                    setTimeout(loadStatus, 2000);
+                    alert('Service restarted successfully!');
+                } else {
+                    alert('Failed to restart service');
+                }
+            } catch (error) {
+                alert('Error restarting service: ' + error.message);
+            }
+        }
+        
+        async function stopService() {
+            try {
+                const response = await fetch(`${API_BASE}/api/stop`, { method: 'POST' });
+                if (response.ok) {
+                    loadStatus();
+                    alert('Service stopped');
+                } else {
+                    alert('Failed to stop service');
+                }
+            } catch (error) {
+                alert('Error stopping service: ' + error.message);
+            }
+        }
+        
+        async function captureNow() {
+            try {
+                const response = await fetch(`${API_BASE}/api/capture`, { method: 'POST' });
+                const result = await response.json();
+                if (result.success) {
+                    alert('Capture complete! Detected ' + result.headCount + ' heads');
+                } else {
+                    alert('Capture failed');
+                }
+                loadStatus();
+            } catch (error) {
+                alert('Error during capture: ' + error.message);
+            }
+        }
+        
+        async function uninstallService() {
+            if (confirm('Are you sure you want to uninstall HeadCounter?')) {
+                try {
+                    const response = await fetch(`${API_BASE}/api/uninstall`, { method: 'POST' });
+                    if (response.ok) {
+                        alert('HeadCounter has been uninstalled.');
+                        window.close();
+                    } else {
+                        alert('Failed to uninstall');
+                    }
+                } catch (error) {
+                    alert('Error during uninstall: ' + error.message);
+                }
+            }
+        }
+        
+        async function refreshSerialPorts() {
+            try {
+                const response = await fetch(`${API_BASE}/api/serial/ports`);
+                const data = await response.json();
+                const select = document.getElementById('serialPort');
+                const currentValue = select.value;
+                
+                // Clear existing options except first
+                while (select.options.length > 1) {
+                    select.remove(1);
+                }
+                
+                // Add new options
+                if (data.ports && data.ports.length > 0) {
+                    data.ports.forEach(port => {
+                        const option = document.createElement('option');
+                        option.value = port.path;
+                        option.text = port.path + (port.manufacturer ? ` (${port.manufacturer})` : '');
+                        select.appendChild(option);
+                    });
+                    document.getElementById('serialStatus').textContent = `${data.ports.length} port(s) found`;
+                } else {
+                    document.getElementById('serialStatus').textContent = 'No ports found';
+                }
+                
+                // Restore selection if still valid
+                if (currentValue) {
+                    select.value = currentValue;
+                }
+            } catch (error) {
+                console.error('Failed to refresh serial ports:', error);
+                document.getElementById('serialStatus').textContent = 'Error scanning ports';
+            }
+        }
+        
+        loadConfig();
+        loadStatus();
+        toggleCameraFields();
+        setInterval(loadStatus, 3000);
+    </script>
+</body>
+</html>

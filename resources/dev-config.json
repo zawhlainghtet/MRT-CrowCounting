@@ -1,0 +1,30 @@
+{
+    "mode": "dev",
+    "camera": {
+        "type": "usb",
+        "usb": {
+            "device": "0",
+            "resolution": "1280x720",
+            "framerate": 60
+        },
+        "rtsp": {
+            "url": "rtsp://camera-ip:554/stream"
+        }
+    },
+    "capture": {
+        "imageFormat": "jpeg"
+    },
+    "storage": {
+        "directory": "captured_images",
+        "maxTotalSizeMB": 1000,
+        "cleanupEnabled": true
+    },
+    "ml": {
+        "command": "machine-learning/CSRNet_RUN.py",
+        "timeoutSeconds": 60
+    },
+    "logging": {
+        "level": "info",
+        "path": "logs"
+    }
+}
