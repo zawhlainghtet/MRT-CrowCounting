@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HeadCounter Display</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-train: #1a1a24;
+            --bg-train-inner: #12121a;
+            --text-primary: #ffffff;
+            --text-secondary: #6b7280;
+            --accent-blue: #3b82f6;
+            --status-online: #22c55e;
+            --status-offline: #4b5563;
+            --crowd-green: #22c55e;
+            --crowd-yellow: #eab308;
+            --crowd-red: #ef4444;
+            --metal-dark: #2a2a3a;
+            --metal-light: #3a3a4a;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: auto;
+        }
+
+        /* Minimal Settings Button */
+        .header {
+            position: fixed;
+            top: 0;
+            right: 0;
+            z-index: 100;
+            padding: 16px;
+        }
+
+        .settings-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .settings-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: var(--text-primary);
+        }
+
+        /* Train Container - Horizontal layout */
+        .train-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            min-height: 100vh;
+        }
+
+        .train-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+        }
+
+        /* Train Car Base Styles - Vertical cards in horizontal row */
+        .train-car {
+            position: relative;
+            width: 220px;
+            height: 360px;
+            background: linear-gradient(180deg, var(--bg-train) 0%, var(--bg-train-inner) 100%);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        /* Crowd indicator bar at bottom */
+        .train-car::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: var(--crowd-green);
+            transition: background 0.5s ease;
+        }
+
+        .train-car.crowd-average::after {
+            background: var(--crowd-yellow);
+        }
+
+        .train-car.crowd-overloaded::after {
+            background: var(--crowd-red);
+        }
+
+        /* Connector between cars - horizontal coupler */
+        .train-connector {
+            width: 16px;
+            height: 50px;
+            background: linear-gradient(90deg, var(--metal-dark) 0%, var(--metal-light) 50%, var(--metal-dark) 100%);
+            position: relative;
+            z-index: 10;
+            flex-shrink: 0;
+        }
+
+        .train-connector::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 6px;
+            height: 30px;
+            background: #1a1a24;
+            border-radius: 3px;
+        }
+
+        /* Front Car - Rounded left side (nose faces left) */
+        .train-car.front-car {
+            border-radius: 100px 12px 12px 100px;
+            margin-right: -8px;
+            z-index: 20;
+            width: 260px;
+        }
+
+        /* Windshield - left side (front car) */
+        .train-car.front-car .windshield {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 70px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            background: linear-gradient(90deg,
+                rgba(59, 130, 246, 0.15) 0%,
+                rgba(59, 130, 246, 0.05) 70%,
+                transparent 100%);
+            border-right: 1px solid rgba(59, 130, 246, 0.15);
+        }
+
+        .front-lights {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .front-light {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            box-shadow: 0 0 12px var(--accent-blue);
+        }
+
+        /* Back Car - Rounded right side (tail faces right) */
+        .train-car.back-car {
+            border-radius: 12px 100px 100px 12px;
+            margin-left: -8px;
+            z-index: 20;
+            width: 260px;
+        }
+
+        /* Windshield on right side (back car) - same style as front */
+        .train-car.back-car .windshield {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 70px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            background: linear-gradient(270deg,
+                rgba(59, 130, 246, 0.15) 0%,
+                rgba(59, 130, 246, 0.05) 70%,
+                transparent 100%);
+            border-left: 1px solid rgba(59, 130, 246, 0.15);
+        }
+
+        .back-lights {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .back-light {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            box-shadow: 0 0 12px var(--accent-blue);
+        }
+
+        /* Offline back lights dimmed */
+        .train-car.back-car.offline .back-light {
+            background: #4b5563;
+            box-shadow: none;
+        }
+
+        /* Middle Cars - Simple rectangles */
+        .train-car.middle-car {
+            border-radius: 4px;
+            width: 200px;
+        }
+
+        /* Car Content - flex column layout */
+        .car-content {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 16px;
+            position: relative;
+        }
+
+        /* Front car content pushed right to avoid headlight area */
+        .front-car .car-content {
+            padding-left: 80px;
+        }
+
+        /* Back car content pushed left to avoid taillight area */
+        .back-car .car-content {
+            padding-right: 80px;
+        }
+
+        /* Back car windshield adjustments */
+        .train-car.back-car .windshield {
+            right: 0;
+        }
+
+        /* Back car tail lights - next to windshield */
+        .train-car.back-car .tail-lights {
+            right: 85px;
+        }
+
+        /* Offline back lights dimmed */
+        .train-car.back-car.offline .back-light {
+            background: #4b5563;
+            box-shadow: none;
+        }
+
+        /* Node name header - at top of car */
+        .car-header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+        }
+
+        .car-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            max-width: 140px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--status-offline);
+        }
+
+        .status-dot.online {
+            background: var(--status-online);
+            box-shadow: 0 0 6px var(--status-online);
+        }
+
+        /* Main count display - center of car */
+        .count-display {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .count-number {
+            font-size: 72px;
+            font-weight: 700;
+            line-height: 1;
+            color: var(--text-primary);
+            transition: transform 0.2s ease;
+        }
+
+        .count-number.changing {
+            transform: scale(1.06);
+        }
+
+        .count-label {
+            font-size: 10px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Crowd section at bottom */
+        .crowd-section {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 6px;
+            padding: 10px;
+        }
+
+        .crowd-bar-container {
+            height: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .crowd-bar {
+            height: 100%;
+            background: var(--crowd-green);
+            border-radius: 3px;
+            transition: width 0.5s ease, background 0.3s ease;
+        }
+
+        .crowd-bar.crowd-average {
+            background: var(--crowd-yellow);
+        }
+
+        .crowd-bar.crowd-overloaded {
+            background: var(--crowd-red);
+        }
+
+        .crowd-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .crowd-level {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 3px;
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--crowd-green);
+        }
+
+        .crowd-level.crowd-average {
+            background: rgba(234, 179, 8, 0.15);
+            color: var(--crowd-yellow);
+        }
+
+        .crowd-level.crowd-overloaded {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--crowd-red);
+        }
+
+        .crowd-weight {
+            font-size: 10px;
+            color: var(--text-secondary);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 80px 40px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state h2 {
+            font-size: 28px;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-train);
+            border-radius: 16px;
+            padding: 28px;
+            width: 90%;
+            max-width: 400px;
+            transform: scale(0.95);
+            transition: transform 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1);
+        }
+
+        .modal h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 14px;
+            background: var(--bg-primary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--text-secondary);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            border: none;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        /* Responsive - Stack vertically on narrow screens */
+        @media (max-width: 600px) {
+            body {
+                overflow-x: hidden;
+            }
+
+            .train-wrapper {
+                padding: 20px;
+            }
+
+            .train-container {
+                flex-direction: column;
+                gap: 0;
+            }
+
+            .train-car {
+                width: 100%;
+                max-width: 280px;
+                height: 300px;
+            }
+
+            .train-car.front-car {
+                border-radius: 80px 80px 4px 4px;
+                margin-right: 0;
+                margin-bottom: -8px;
+            }
+
+            .train-car.front-car .front-windshield {
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: auto;
+                width: 100%;
+                height: 60px;
+                flex-direction: row;
+                background: linear-gradient(180deg, 
+                    rgba(59, 130, 246, 0.15) 0%, 
+                    rgba(59, 130, 246, 0.05) 70%,
+                    transparent 100%);
+                border-right: none;
+                border-bottom: 1px solid rgba(59, 130, 246, 0.15);
+            }
+
+            .train-car.front-car .front-lights {
+                flex-direction: row;
+            }
+
+            .train-car.back-car {
+                border-radius: 4px 4px 80px 80px;
+                margin-left: 0;
+                margin-top: -8px;
+            }
+
+            .train-car.back-car .tail-lights {
+                right: 50%;
+                top: auto;
+                bottom: 20px;
+                transform: translateX(50%);
+                flex-direction: row;
+            }
+
+            .train-connector {
+                width: 60px;
+                height: 16px;
+                margin: 0 auto;
+            }
+
+            .train-connector::before {
+                width: 40px;
+                height: 6px;
+            }
+
+            .count-number {
+                font-size: 56px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Minimal Settings Button -->
+    <header class="header">
+        <button class="settings-btn" onclick="openSettings()">Settings</button>
+    </header>
+
+    <!-- Train Display -->
+    <div class="train-wrapper">
+        <main class="train-container" id="trainContainer">
+            <div class="empty-state">
+                <h2>No Nodes Registered</h2>
+                <p>Register nodes to start tracking head counts</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <h2>Settings</h2>
+            <div class="form-group">
+                <label for="maxKg">Max kg allowed per node</label>
+                <input type="number" id="maxKg" min="1" value="1000">
+            </div>
+            <div class="form-group">
+                <label for="avgKg">Average kg per person</label>
+                <input type="number" id="avgKg" min="1" value="70">
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-secondary" onclick="closeSettings()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveSettings()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Settings keys
+        const SETTINGS_KEY = 'headcounter_display_settings';
+        const DEFAULT_MAX_KG = 1000;
+        const DEFAULT_AVG_KG = 70;
+        const REFRESH_INTERVAL = 5000;
+
+        // State
+        let currentNodes = [];
+        let refreshTimer = null;
+
+        // Get settings from localStorage
+        function getSettings() {
+            try {
+                const stored = localStorage.getItem(SETTINGS_KEY);
+                if (stored) {
+                    return JSON.parse(stored);
+                }
+            } catch (e) {
+                console.error('Failed to parse settings:', e);
+            }
+            return { maxKg: DEFAULT_MAX_KG, avgKg: DEFAULT_AVG_KG };
+        }
+
+        // Save settings to localStorage
+        function saveSettingsToStorage(settings) {
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+        }
+
+        // Calculate crowd level based on weight
+        function calculateCrowdLevel(headCount, settings) {
+            if (headCount === null || headCount === undefined) {
+                return { level: 'unknown', totalWeight: 0, percentage: 0 };
+            }
+
+            const totalWeight = headCount * settings.avgKg;
+            const percentage = (totalWeight / settings.maxKg) * 100;
+
+            let level;
+            if (totalWeight < settings.maxKg * 0.7) {
+                level = 'not-crowded';
+            } else if (totalWeight < settings.maxKg) {
+                level = 'average';
+            } else {
+                level = 'overloaded';
+            }
+
+            return { level, totalWeight, percentage: Math.min(percentage, 100) };
+        }
+
+        // Format crowd level text
+        function getCrowdLevelText(level) {
+            switch (level) {
+                case 'not-crowded': return 'Not Crowded';
+                case 'average': return 'Average Load';
+                case 'overloaded': return 'Overloaded';
+                default: return 'Unknown';
+            }
+        }
+
+        // Open settings modal
+        function openSettings() {
+            const settings = getSettings();
+            document.getElementById('maxKg').value = settings.maxKg;
+            document.getElementById('avgKg').value = settings.avgKg;
+            document.getElementById('settingsModal').classList.add('active');
+        }
+
+        // Close settings modal
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+
+        // Save settings
+        function saveSettings() {
+            const maxKg = parseInt(document.getElementById('maxKg').value) || DEFAULT_MAX_KG;
+            const avgKg = parseInt(document.getElementById('avgKg').value) || DEFAULT_AVG_KG;
+
+            const settings = { maxKg, avgKg };
+            saveSettingsToStorage(settings);
+            closeSettings();
+            renderNodes();
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Render nodes as train cars - HORIZONTAL layout
+        function renderNodes() {
+            const container = document.getElementById('trainContainer');
+            const settings = getSettings();
+
+            if (currentNodes.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h2>No Nodes Registered</h2>
+                        <p>Register nodes to start tracking head counts</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const totalCars = currentNodes.length;
+            let html = '';
+
+            currentNodes.forEach((node, index) => {
+                const crowd = calculateCrowdLevel(node.lastCount, settings);
+                const isOnline = node.status === 'online';
+                const isFirst = index === 0;
+                const isLast = index === totalCars - 1;
+
+                let crowdClass = '';
+                if (crowd.level === 'average') crowdClass = 'crowd-average';
+                if (crowd.level === 'overloaded') crowdClass = 'crowd-overloaded';
+
+                let carClass = 'train-car';
+                if (isFirst) carClass += ' front-car';
+                else if (isLast) carClass += ' back-car';
+                else carClass += ' middle-car';
+
+                if (!isOnline) carClass += ' offline';
+
+                // Front car windshield with lights (on left side)
+                const frontWindshield = isFirst ? `
+                    <div class="windshield front-windshield">
+                        <div class="front-lights">
+                            <div class="front-light"></div>
+                            <div class="front-light"></div>
+                        </div>
+                    </div>
+                ` : '';
+
+                // Back car windshield on right side (same as front, facing right)
+                const backWindshield = isLast ? `
+                    <div class="windshield back-windshield">
+                        <div class="back-lights">
+                            <div class="back-light"></div>
+                            <div class="back-light"></div>
+                        </div>
+                    </div>
+                ` : '';
+
+                html += `
+                    <div class="${carClass} ${crowdClass}">
+                        <div class="car-content">
+                            ${frontWindshield}
+                            ${backWindshield}
+                            <div class="car-header">
+                                <span class="car-name">${escapeHtml(node.name)}</span>
+                                <div class="status-indicator">
+                                    <span class="status-dot ${isOnline ? 'online' : ''}"></span>
+                                </div>
+                            </div>
+                            <div class="count-display">
+                                <div class="count-number" id="count-${node.id}">${node.lastCount !== null ? node.lastCount : '-'}</div>
+                                <div class="count-label">Head Count</div>
+                            </div>
+                            <div class="crowd-section">
+                                <div class="crowd-bar-container">
+                                    <div class="crowd-bar ${crowdClass}" style="width: ${crowd.percentage}%"></div>
+                                </div>
+                                <div class="crowd-info">
+                                    <span class="crowd-level ${crowdClass}">${getCrowdLevelText(crowd.level)}</span>
+                                    <span class="crowd-weight">${Math.round(crowd.totalWeight)} / ${settings.maxKg} kg</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Add connector between cars (not after the last car)
+                if (!isLast) {
+                    html += '<div class="train-connector"></div>';
+                }
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Fetch data from API
+        async function fetchData() {
+            try {
+                const response = await fetch('/api/nodes');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch nodes');
+                }
+
+                const nodes = await response.json();
+                currentNodes = nodes;
+                renderNodes();
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        }
+
+        // Start auto-refresh
+        function startAutoRefresh() {
+            fetchData();
+            if (refreshTimer) {
+                clearInterval(refreshTimer);
+            }
+            refreshTimer = setInterval(fetchData, REFRESH_INTERVAL);
+        }
+
+        // Close modal on overlay click
+        document.getElementById('settingsModal').addEventListener('click', (e) => {
+            if (e.target.id === 'settingsModal') {
+                closeSettings();
+            }
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeSettings();
+            }
+        });
+
+        // Initialize
+        startAutoRefresh();
+    </script>
+</body>
+</html>

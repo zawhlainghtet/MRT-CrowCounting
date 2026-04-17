@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HeadCounter Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat-card h3 {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+        }
+        .section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .section h2 {
+            color: #333;
+            margin-bottom: 16px;
+            font-size: 18px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background: #f9f9f9;
+            font-weight: 600;
+            color: #666;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .status.online {
+            background: #e6f7e6;
+            color: #2e7d32;
+        }
+        .status.offline {
+            background: #f5f5f5;
+            color: #666;
+        }
+        .count-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1976d2;
+        }
+        .timestamp {
+            color: #999;
+            font-size: 12px;
+        }
+        .refresh-btn {
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .refresh-btn:hover {
+            background: #1565c0;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .display-btn {
+            background: #2e7d32;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+
+        .display-btn:hover {
+            background: #1b5e20;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        /* Tab Navigation */
+        .tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #666;
+            position: relative;
+            transition: color 0.2s;
+        }
+        .tab:hover {
+            color: #333;
+        }
+        .tab.active {
+            color: #1976d2;
+        }
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #1976d2;
+        }
+        .tab-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 20px;
+            height: 20px;
+            padding: 0 6px;
+            background: #1976d2;
+            color: white;
+            border-radius: 10px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+
+        /* Page Content */
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            transition: background 0.2s;
+        }
+        .btn-primary {
+            background: #1976d2;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #1565c0;
+        }
+        .btn-danger {
+            background: #d32f2f;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #b71c1c;
+        }
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+        .btn-secondary:hover {
+            background: #bdbdbd;
+        }
+
+        /* Action Buttons */
+        .action-btn {
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            border: none;
+            transition: background 0.2s;
+        }
+        .delete-btn {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+        .delete-btn:hover {
+            background: #ffcdd2;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+        .modal h2 {
+            margin-bottom: 16px;
+            font-size: 18px;
+            color: #333;
+        }
+        .modal p {
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: #333;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #1976d2;
+        }
+        .form-error {
+            color: #d32f2f;
+            font-size: 12px;
+            margin-top: 6px;
+        }
+
+        /* Token Display */
+        .token-box {
+            background: #f5f5f5;
+            padding: 12px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            word-break: break-all;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .token-value {
+            flex: 1;
+            word-break: break-all;
+        }
+        .copy-btn {
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .copy-btn:hover {
+            background: #1565c0;
+        }
+        .copy-btn.copied {
+            background: #2e7d32;
+        }
+
+        /* Nodes Page Header */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .page-header h2 {
+            margin-bottom: 0;
+        }
+
+        /* Actions Column */
+        .actions-cell {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>HeadCounter Dashboard</h1>
+            <div class="header-actions">
+                <button class="refresh-btn" onclick="refreshCurrentPage()">Refresh</button>
+                <a href="/display" target="_blank" class="display-btn">View Display</a>
+            </div>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" data-page="dashboard">Dashboard</button>
+            <button class="tab" data-page="nodes">
+                Nodes
+                <span class="tab-badge" id="nodesTabBadge">0</span>
+            </button>
+        </div>
+
+        <!-- Dashboard Page -->
+        <div id="dashboard-page" class="page active">
+            <div class="stats">
+                <div class="stat-card">
+                    <h3>Total Nodes</h3>
+                    <div class="value" id="totalNodes">-</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Online</h3>
+                    <div class="value" id="onlineNodes">-</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Offline</h3>
+                    <div class="value" id="offlineNodes">-</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Recent Count Reports</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Node</th>
+                            <th>Head Count</th>
+                            <th>Captured At</th>
+                            <th>Reported At</th>
+                        </tr>
+                    </thead>
+                    <tbody id="countsTable">
+                        <tr><td colspan="4" class="loading">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Nodes Page -->
+        <div id="nodes-page" class="page">
+            <div class="page-header">
+                <h2>Registered Nodes</h2>
+                <button class="btn btn-primary" onclick="openRegisterModal()">Register Node</button>
+            </div>
+
+            <div class="section">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Status</th>
+                            <th>Last Seen</th>
+                            <th>Latest Count</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="nodesTable">
+                        <tr><td colspan="5" class="loading">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Node Modal -->
+    <div id="registerModal" class="modal-overlay">
+        <div class="modal">
+            <h2>Register New Node</h2>
+            <form id="registerForm" onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label for="nodeName">Node Name</label>
+                    <input type="text" id="nodeName" name="nodeName" required placeholder="Enter node name">
+                    <div id="registerError" class="form-error" style="display: none;"></div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeRegisterModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Register</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Token Display Modal -->
+    <div id="tokenModal" class="modal-overlay">
+        <div class="modal">
+            <h2>Node Registered Successfully</h2>
+            <p>Save this token securely. It cannot be retrieved later.</p>
+            <div class="token-box">
+                <span class="token-value" id="generatedToken"></span>
+                <button class="copy-btn" id="copyBtn" onclick="copyToken()">Copy to Clipboard</button>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="closeTokenModal()">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal-overlay">
+        <div class="modal">
+            <h2>Delete Node?</h2>
+            <p id="deleteMessage">Are you sure you want to delete this node? This action cannot be undone.</p>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let currentPage = 'dashboard';
+        let nodesRefreshInterval = null;
+        let nodeToDelete = null;
+
+        // DOM Elements
+        const elements = {
+            error: document.getElementById('error'),
+            totalNodes: document.getElementById('totalNodes'),
+            onlineNodes: document.getElementById('onlineNodes'),
+            offlineNodes: document.getElementById('offlineNodes'),
+            countsTable: document.getElementById('countsTable'),
+            nodesTable: document.getElementById('nodesTable'),
+            nodesTabBadge: document.getElementById('nodesTabBadge'),
+            registerModal: document.getElementById('registerModal'),
+            tokenModal: document.getElementById('tokenModal'),
+            deleteModal: document.getElementById('deleteModal'),
+            registerForm: document.getElementById('registerForm'),
+            nodeName: document.getElementById('nodeName'),
+            registerError: document.getElementById('registerError'),
+            generatedToken: document.getElementById('generatedToken'),
+            copyBtn: document.getElementById('copyBtn'),
+            deleteMessage: document.getElementById('deleteMessage')
+        };
+
+        // Tab Navigation
+        function initTabs() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    switchPage(tab.dataset.page);
+                });
+            });
+        }
+
+        function switchPage(page) {
+            currentPage = page;
+            
+            // Update tab active states
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.page === page);
+            });
+
+            // Update page visibility
+            document.querySelectorAll('.page').forEach(p => {
+                p.classList.toggle('active', p.id === `${page}-page`);
+            });
+
+            // Manage refresh intervals
+            if (page === 'nodes') {
+                loadNodes();
+                startNodesAutoRefresh();
+            } else {
+                stopNodesAutoRefresh();
+                loadDashboardData();
+            }
+        }
+
+        function refreshCurrentPage() {
+            if (currentPage === 'nodes') {
+                loadNodes();
+            } else {
+                loadDashboardData();
+            }
+        }
+
+        // Error Handling
+        function showError(message) {
+            elements.error.textContent = message;
+            elements.error.style.display = 'block';
+        }
+
+        function hideError() {
+            elements.error.style.display = 'none';
+        }
+
+        function showModalError(modalId, errorId, message) {
+            const errorEl = document.getElementById(errorId);
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+        }
+
+        function hideModalError(errorId) {
+            document.getElementById(errorId).style.display = 'none';
+        }
+
+        // Date Formatting
+        function formatDate(date) {
+            if (!date) return '-';
+            const d = new Date(date);
+            return d.toLocaleString();
+        }
+
+        // Dashboard Data Loading
+        async function loadDashboardData() {
+            hideError();
+
+            try {
+                const [statusRes, countsRes] = await Promise.all([
+                    fetch('/api/status'),
+                    fetch('/api/counts?limit=50')
+                ]);
+
+                if (!statusRes.ok || !countsRes.ok) {
+                    throw new Error('Failed to load data');
+                }
+
+                const status = await statusRes.json();
+                const counts = await countsRes.json();
+
+                // Update stats
+                elements.totalNodes.textContent = status.nodeCount;
+                elements.onlineNodes.textContent = status.onlineCount;
+                elements.offlineNodes.textContent = status.offlineCount;
+                elements.nodesTabBadge.textContent = status.nodeCount;
+
+                // Update counts table
+                if (counts.length === 0) {
+                    elements.countsTable.innerHTML = '<tr><td colspan="4" class="loading">No count reports yet</td></tr>';
+                } else {
+                    elements.countsTable.innerHTML = counts.map(count => `
+                        <tr>
+                            <td>${escapeHtml(count.nodeName)}</td>
+                            <td class="count-value">${count.count}</td>
+                            <td class="timestamp">${formatDate(count.capturedAt)}</td>
+                            <td class="timestamp">${formatDate(count.reportedAt)}</td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (err) {
+                showError('Error loading data: ' + err.message);
+            }
+        }
+
+        // Nodes Page Functions
+        async function loadNodes() {
+            hideError();
+
+            try {
+                const nodesRes = await fetch('/api/nodes');
+
+                if (!nodesRes.ok) {
+                    throw new Error('Failed to load nodes');
+                }
+
+                const nodes = await nodesRes.json();
+
+                // Update badge
+                elements.nodesTabBadge.textContent = nodes.length;
+
+                // Update nodes table
+                if (nodes.length === 0) {
+                    elements.nodesTable.innerHTML = '<tr><td colspan="5" class="loading">No nodes registered</td></tr>';
+                } else {
+                    elements.nodesTable.innerHTML = nodes.map(node => `
+                        <tr>
+                            <td>${escapeHtml(node.name)}</td>
+                            <td><span class="status ${node.status}">${node.status}</span></td>
+                            <td class="timestamp">${formatDate(node.lastSeen)}</td>
+                            <td class="count-value">${node.lastCount !== null ? node.lastCount : '-'}</td>
+                            <td class="actions-cell">
+                                <button class="action-btn delete-btn" onclick="openDeleteModal('${escapeHtml(node.id)}', '${escapeHtml(node.name)}')">
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (err) {
+                showError('Error loading nodes: ' + err.message);
+            }
+        }
+
+        function startNodesAutoRefresh() {
+            stopNodesAutoRefresh();
+            nodesRefreshInterval = setInterval(loadNodes, 10000);
+        }
+
+        function stopNodesAutoRefresh() {
+            if (nodesRefreshInterval) {
+                clearInterval(nodesRefreshInterval);
+                nodesRefreshInterval = null;
+            }
+        }
+
+        // Register Modal Functions
+        function openRegisterModal() {
+            elements.nodeName.value = '';
+            hideModalError('registerError');
+            elements.registerModal.classList.add('active');
+            elements.nodeName.focus();
+        }
+
+        function closeRegisterModal() {
+            elements.registerModal.classList.remove('active');
+            elements.nodeName.value = '';
+            hideModalError('registerError');
+        }
+
+        async function handleRegister(event) {
+            event.preventDefault();
+            hideModalError('registerError');
+
+            const name = elements.nodeName.value.trim();
+
+            if (!name) {
+                showModalError('registerModal', 'registerError', 'Node name is required');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/node/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.error || 'Registration failed');
+                }
+
+                // Show token modal
+                closeRegisterModal();
+                elements.generatedToken.textContent = data.token;
+                elements.tokenModal.classList.add('active');
+
+                // Refresh nodes list
+                loadNodes();
+            } catch (err) {
+                showModalError('registerModal', 'registerError', err.message);
+            }
+        }
+
+        // Token Modal Functions
+        function closeTokenModal() {
+            elements.tokenModal.classList.remove('active');
+            elements.copyBtn.textContent = 'Copy to Clipboard';
+            elements.copyBtn.classList.remove('copied');
+        }
+
+        async function copyToken() {
+            const token = elements.generatedToken.textContent;
+
+            try {
+                await navigator.clipboard.writeText(token);
+                elements.copyBtn.textContent = 'Copied!';
+                elements.copyBtn.classList.add('copied');
+
+                setTimeout(() => {
+                    elements.copyBtn.textContent = 'Copy to Clipboard';
+                    elements.copyBtn.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                showError('Failed to copy to clipboard');
+            }
+        }
+
+        // Delete Modal Functions
+        function openDeleteModal(nodeId, nodeName) {
+            nodeToDelete = { id: nodeId, name: nodeName };
+            elements.deleteMessage.textContent = `Are you sure you want to delete "${nodeName}"? This action cannot be undone.`;
+            elements.deleteModal.classList.add('active');
+        }
+
+        function closeDeleteModal() {
+            elements.deleteModal.classList.remove('active');
+            nodeToDelete = null;
+        }
+
+        async function confirmDelete() {
+            if (!nodeToDelete) return;
+
+            try {
+                const res = await fetch(`/api/nodes/${nodeToDelete.id}`, {
+                    method: 'DELETE'
+                });
+
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.error || 'Delete failed');
+                }
+
+                closeDeleteModal();
+                loadNodes();
+            } catch (err) {
+                showError('Error deleting node: ' + err.message);
+                closeDeleteModal();
+            }
+        }
+
+        // Utility Functions
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Modal close on overlay click
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('active');
+                }
+            });
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeRegisterModal();
+                closeTokenModal();
+                closeDeleteModal();
+            }
+        });
+
+        // Initialize
+        initTabs();
+        loadDashboardData();
+        setInterval(loadDashboardData, 10000);
+    </script>
+</body>
+</html>
